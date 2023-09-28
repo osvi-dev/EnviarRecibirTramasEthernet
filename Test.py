@@ -1,8 +1,8 @@
 from uuid import getnode
 from scapy.all import Ether, sendp, sniff
 from  threading import Thread, Event
-
-flag = Event()
+import os
+flag = Event() # variable de comunicacion de los hilos
 
 def obtener_mac():
     mac = hex(getnode()).replace('0x','').upper()
@@ -17,13 +17,15 @@ class Enviar(Thread):
         self.mac_d = mac_d
     
     def run(self):
+        
+        print("Introduce un mensaje\no teclea salir para acabar con la aplicacion\n")
         while not flag.is_set():
-            mensaje = input('Introduce un mensaje\n o teclea salir para acabar con la aplicacion')
+            mensaje = input('> ')
             trama = Ether(src=self.mac_o, dst=self.mac_d) / mensaje.encode()
             sendp(trama, iface='Ethernet')
             if mensaje[0:5] == 'salir':
-                flag.set()
-                break
+                print("\nPrograma finalizado...")
+                os._exit(1) #salimos del hilo principal
                 
 class Recibir(Thread):
     def __init__(self, mac_d):
@@ -36,28 +38,33 @@ class Recibir(Thread):
     
     def leer_trama(self, trama):
         try:
-            if trama[Ether].src == self.mac_d.lower() and trama.haslayer('Raw'): #implementar el filtro
+            if trama[Ether].src == self.mac_d.lower() and trama.haslayer('Raw'):
                 datos = trama.getlayer('Raw').load
                 mensaje = datos.decode('utf-8')
-                print("\n Mensaje recibido: ", mensaje)            
+                if mensaje[0:8] != "M-SEARCH": # Para que no llegue el trafico del navegador
+                    print("\nMensaje recibido: ", mensaje)
+                    if mensaje[0:5] == 'salir':
+                        print("\nPrograma finalizado...")
+                        os._exit(1)       
         except:
             pass
         
     def stop(self, trama):
-        try:
-            if trama[Ether].src == self.mac_d.lower() and trama.haslayer('Raw'): #implementar el filtro para que no salga el trafico de red
+        try:        
+            if trama[Ether].src == self.mac_d.lower() and trama.haslayer('Raw'):
                 datos = trama.getlayer('Raw').load
                 mensaje = datos.decode('utf-8')
                 if mensaje[0:5] == 'salir':
-                   flag.set()
-                   return True 
+                    print("\nPrograma finalizado...")
+                    os._exit(1) 
         except:
             pass
         
 class Interconexion():
-    global flag
+    
     MAC_ORIGEN = obtener_mac()
-    MAC_DESTINO = # TU MAC
+    # '80:E8:2C:28:BF:A3'
+    MAC_DESTINO = 'D4:5D:64:5B:14:95'
     
     enviar = Enviar(MAC_ORIGEN, MAC_DESTINO)
     recibir = Recibir(MAC_DESTINO)
@@ -68,5 +75,5 @@ class Interconexion():
     enviar.join()
     recibir.join()
     
-
-    
+if __name__ == '__main__':
+    conexion = Interconexion()
