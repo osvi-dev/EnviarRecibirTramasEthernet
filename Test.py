@@ -57,7 +57,7 @@ class Recibir(Thread):
 class Interconexion():
     global flag
     MAC_ORIGEN = obtener_mac()
-    MAC_DESTINO = '80:E8:2C:28:BF:A3'
+    MAC_DESTINO = # TU MAC
     
     enviar = Enviar(MAC_ORIGEN, MAC_DESTINO)
     recibir = Recibir(MAC_DESTINO)
